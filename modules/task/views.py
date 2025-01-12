@@ -57,7 +57,6 @@ def task_update(request, task_id):
             # Check if a new file is uploaded
             if 'file' in request.FILES:
                 file = form.cleaned_data['file']
-                print(file)
 
                 # Delete the old file from S3
                 if existing_file and storage.is_exist(existing_file.file_path):
