@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}task{% endblock %}
+
+{% block content %}
+
+task list index
+<table id="user_list" class="display" style="width:100%;">
+    <thead>
+    <tr>
+        <th>Title</th>
+        <th>Source</th>
+        <th>Content</th>
+    </tr>
+    </thead>
+</table>
+
+
+{% endblock %}
+
+{% block script %}
+<script charset="utf8" src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script charset="utf8"
+        src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script>
+    let table = $('#user_list').DataTable({
+        "ajax": {
+            "url": "/user/datatable_list",
+        },
+        "processing": true,
+        "serverSide": true,
+        "columns": [
+            {"data": "first_name"},
+            {"data": "last_name"},
+            {
+                "width": "30%",
+                "data": "email"
+            },
+        ],
+        "language": {
+            search: '<i class="fa fa-filter" aria-hidden="true">Search</i>',
+            searchPlaceholder: 'Enter Email'
+        },
+    });
+
+</script>
+{% endblock %}

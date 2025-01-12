@@ -1,0 +1,27 @@
+{
+    "disks": {
+      "local": {
+        "driver": "local",
+        "root": "/"
+      },
+      "s3": {
+        "driver": "s3",
+        "s3": {
+          "bucket": "bucket",
+          "key": "key",
+          "secret": "secret",
+          "region": "ap-southeast-5"
+        }
+      },
+      "sftp_disk": {
+        "driver": "sftp",
+        "sftp": {
+          "host": "example.com",
+          "username": "myusername",
+          "password": "mypassword",
+          "port": 22
+        }
+      }
+    }
+  }
+  

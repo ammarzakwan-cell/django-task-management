@@ -1,0 +1,12 @@
+/.vscode
+.env
+.env.backup
+.env.production
+.bak
+*.log
+*.pot
+*.pyc
+__pycache__
+db.sqlite3
+media
+env/

@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}task_create{% endblock %}
+
+{% block content %}
+
+{% if existing_file %}
+            <div>
+                <p>Current File:</p>
+                <img src="{{ image_url }}" alt="Uploaded File" style="max-width: 200px; max-height: 200px;">
+            </div>
+        {% endif %}
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Submit</button>
+</form>
+{% endblock %}

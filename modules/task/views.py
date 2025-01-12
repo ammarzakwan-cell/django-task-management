@@ -1,0 +1,145 @@
+from django.shortcuts import get_object_or_404, render, redirect
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.db.models import Q
+from .models import Task
+from modules.media.models import Media
+from .forms import TaskForm
+from components.storage_component import StorageComponent
+from django.contrib.contenttypes.models import ContentType
+
+# Create your views here.
+def task_index(request):
+    return render(request, 'task_index.html')
+
+def task_create(request):
+    if request.method == 'POST':
+        form = TaskForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            # Save the Task instance
+            task = form.save(commit=False)
+            task.save()
+
+            # Upload the file and associate it with the Task
+            file = form.cleaned_data['file']
+            print(file)
+            storage = StorageComponent()
+            storage.disk('s3').upload_file(file, model_instance=task, collection_name="data_entry_task")
+
+            return redirect('task_index')  # Redirect to a task list page
+        else:
+            return render(request, 'task_create.html', {'form': form, 'errors': form.errors})
+    else:
+        form = TaskForm()
+    return render(request, 'task_create.html', {'form': form})
+
+
+def task_update(request, task_id):
+
+    storage = StorageComponent().disk('s3')
+
+    # Get the task instance to update
+    task = get_object_or_404(Task, id=task_id)
+
+    existing_file = Media.objects.filter(
+        content_type=ContentType.objects.get_for_model(Task),
+        object_id=task.id
+    ).first()
+
+    if request.method == 'POST':
+        form = TaskForm(request.POST, request.FILES, instance=task)
+
+        if form.is_valid():
+            # Save updated Task instance
+            task = form.save(commit=False)
+            task.save()
+
+            # Check if a new file is uploaded
+            if 'file' in request.FILES:
+                file = form.cleaned_data['file']
+
+                # Upload the new file to S3
+                storage = StorageComponent().disk('s3')
+
+                # Delete the old file from S3
+            if storage.is_exist(file.file_path):
+                storage.remove(file.file_path)
+
+                storage.upload_file(
+                    file, model_instance=task, collection_name="data_entry_task"
+                )
+
+            return redirect('task_index')  # Redirect to a task list page
+        else:
+            return render(request, 'task_update.html', {'form': form, 'errors': form.errors, 'task': task})
+    else:
+        form = TaskForm(instance=task)
+    
+    #image_url = storage.generate_signed_url(existing_file.file_path)
+    image_url = storage.get_public_url(existing_file.file_path)
+
+    return render(request, 'task_update.html', {'form': form, 'task': task, 'image_url': image_url, 'existing_file': existing_file})
+
+
+
+
+class DataTableTaskList(APIView):
+    def get(self, request, *args, **kwargs) -> Response:
+        # Retrieve request parameters
+        search_value = request.GET.get('search[value]', '')
+        start = int(request.GET.get('start', 0))
+        length = int(request.GET.get('length', 10))
+        order_column_index = int(request.GET.get('order[0][column]', 0))
+        order_dir = request.GET.get('order[0][dir]', 'asc')
+
+        # Define columns mapping (DataTables column names)
+        columns = ['title', 'source', 'content']  # Adjust to match your model fields
+
+        # Base QuerySet
+        queryset = Task.objects.all()
+
+        # Apply search filter
+        if search_value:
+            queryset = queryset.filter(
+                Q(email__icontains=search_value) | 
+                Q(first_name__icontains=search_value)
+            )
+
+        # Calculate the filtered count before slicing
+        records_filtered = queryset.count()
+
+        # Apply ordering
+        if order_column_index < len(columns):
+            column_name = columns[order_column_index]
+            if order_dir == 'asc':
+                queryset = queryset.order_by(column_name)
+            else:
+                queryset = queryset.order_by(f"-{column_name}")
+        else:
+            queryset = queryset.order_by('-id')
+
+        # Apply pagination
+        queryset = queryset[start:start + length]
+
+        # Total record count
+        records_total = Task.objects.count()
+
+        # Prepare response data
+        data = [
+            {
+                'first_name': obj.first_name,
+                'last_name': obj.last_name,
+                'email': obj.email,
+                'id': obj.id,
+            }
+            for obj in queryset
+        ]
+
+        # Return JSON response
+        return Response({
+            'draw': int(request.GET.get('draw', 1)),  # Pass-through value from DataTables
+            'recordsTotal': records_total,
+            'recordsFiltered': records_filtered,
+            'data': data,
+        })
