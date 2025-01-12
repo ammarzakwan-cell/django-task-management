@@ -23,7 +23,6 @@ def task_create(request):
 
             # Upload the file and associate it with the Task
             file = form.cleaned_data['file']
-            print(file)
             storage = StorageComponent()
             storage.disk('s3').upload_file(file, model_instance=task, collection_name="data_entry_task")
 
@@ -58,13 +57,11 @@ def task_update(request, task_id):
             # Check if a new file is uploaded
             if 'file' in request.FILES:
                 file = form.cleaned_data['file']
-
-                # Upload the new file to S3
-                storage = StorageComponent().disk('s3')
+                print(file)
 
                 # Delete the old file from S3
-            if storage.is_exist(file.file_path):
-                storage.remove(file.file_path)
+                if existing_file and storage.is_exist(existing_file.file_path):
+                    storage.remove(existing_file.file_path)
 
                 storage.upload_file(
                     file, model_instance=task, collection_name="data_entry_task"
@@ -76,8 +73,7 @@ def task_update(request, task_id):
     else:
         form = TaskForm(instance=task)
     
-    #image_url = storage.generate_signed_url(existing_file.file_path)
-    image_url = storage.get_public_url(existing_file.file_path)
+    image_url = storage.generate_signed_url(existing_file.file_path)
 
     return render(request, 'task_update.html', {'form': form, 'task': task, 'image_url': image_url, 'existing_file': existing_file})
 
@@ -85,6 +81,7 @@ def task_update(request, task_id):
 
 
 class DataTableTaskList(APIView):
+
     def get(self, request, *args, **kwargs) -> Response:
         # Retrieve request parameters
         search_value = request.GET.get('search[value]', '')
@@ -102,8 +99,8 @@ class DataTableTaskList(APIView):
         # Apply search filter
         if search_value:
             queryset = queryset.filter(
-                Q(email__icontains=search_value) | 
-                Q(first_name__icontains=search_value)
+                Q(title__icontains=search_value) | 
+                Q(source__icontains=search_value)
             )
 
         # Calculate the filtered count before slicing
@@ -128,10 +125,11 @@ class DataTableTaskList(APIView):
         # Prepare response data
         data = [
             {
-                'first_name': obj.first_name,
-                'last_name': obj.last_name,
-                'email': obj.email,
+                'title': obj.title,
+                'source': obj.source,
+                'content': obj.content,
                 'id': obj.id,
+                'edit_url': '/task/task_update/' + str(obj.id),
             }
             for obj in queryset
         ]

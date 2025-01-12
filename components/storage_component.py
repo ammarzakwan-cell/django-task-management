@@ -7,23 +7,17 @@ from fs_s3fs import S3FS
 from fs.errors import ResourceNotFound
 from modules.media.models import Media
 import boto3
+from botocore.exceptions import ClientError
+from config.storage import config
 
 class StorageComponent:
 
-    # set your storage config path
-    config_path = "./config/storage.json"
-
     def __init__(self):
-        self.config = self._load_config(self.config_path)
+        self.config = config
         self.filesystem = {}
         self.active_disk = None
         self.disk_config = None
         self.default_disk = 'local'  # Default disk can be set here
-    
-    def _load_config(self, config_path: str) -> json:
-        """Load configuration from a file."""
-        with open(config_path, 'r') as file:
-            return json.load(file)
         
     def get_adapter(self):
         """Return the adapter (filesystem) for the selected disk."""
@@ -205,7 +199,7 @@ class StorageComponent:
         """Generate a public URL for the given file."""
         return self.get_adapter().geturl(file_path)  # Ensure this generates the URL
 
-    def generate_signed_url(self, file_path, expiration: int=3600):
+    def generate_signed_url(self, object_name, expiration: int=3600):
         """
         Generate a presigned URL for accessing a file in S3.
         :param file_path: The S3 key (file path in the bucket)
@@ -215,22 +209,24 @@ class StorageComponent:
         :return: Signed URL string
         """
         s3_config = self.disk_config.get('s3')
-        s3_client = boto3.client('s3', 
-                                 aws_access_key_id=s3_config.get('key'),
-                                 aws_secret_access_key=s3_config.get('secret'),
-                                 region_name=s3_config.get('region'))
+        s3_client = boto3.client(
+            's3', 
+            aws_access_key_id=s3_config.get('key'),
+            aws_secret_access_key=s3_config.get('secret'),
+            region_name=s3_config.get('region'),
+            endpoint_url='https://s3.ap-southeast-5.amazonaws.com',
+            )
         try:
             response = s3_client.generate_presigned_url(
                 'get_object',
                 Params={
                     'Bucket': s3_config.get('bucket'),
-                    'Key': file_path,
-                    'ResponseContentType': 'image/jpeg'
+                    'Key': object_name,
                 },
                 ExpiresIn=expiration
             )
             return response
-        except Exception as e:
+        except ClientError as e:
             logging.error(f"Could not generate signed URL: {e}")
             return None
 

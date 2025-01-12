@@ -1,15 +1,20 @@
 {% extends 'base.html' %}
 {% block title %}task{% endblock %}
 
+{% block style %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+{% endblock %}
+
 {% block content %}
 
 task list index
-<table id="user_list" class="display" style="width:100%;">
+<table id="task_list" class="display" style="width:100%;">
     <thead>
     <tr>
         <th>Title</th>
         <th>Source</th>
         <th>Content</th>
+        <th></th>
     </tr>
     </thead>
 </table>
@@ -22,25 +27,39 @@ task list index
 <script charset="utf8"
         src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script>
-    let table = $('#user_list').DataTable({
+    let table = $('#task_list').DataTable({
         "ajax": {
-            "url": "/user/datatable_list",
+            "url": "/task/dt_task",
         },
         "processing": true,
         "serverSide": true,
         "columns": [
-            {"data": "first_name"},
-            {"data": "last_name"},
+            {"data": "title"},
+            {"data": "source"},
             {
                 "width": "30%",
-                "data": "email"
+                "data": "content"
             },
+            {
+                "data": null, // This is for the Edit button
+                "orderable": false, // Disable sorting for this column
+                "searchable": false, // Disable searching for this column
+                "render": function (data, type, row) {
+                    return '<button class="btn btn-primary edit-task" data-edit_url ="' + row.edit_url + '">Edit</button>';
+                }
+            },
+    
         ],
         "language": {
             search: '<i class="fa fa-filter" aria-hidden="true">Search</i>',
-            searchPlaceholder: 'Enter Email'
+            searchPlaceholder: 'Enter Title or Source'
         },
     });
 
+    // Handle the Edit button click event
+    $('#task_list tbody').on('click', '.edit-task', function () {
+        console.log($(this).data('edit_url'))
+        window.location.replace($(this).data('edit_url'))
+    });
 </script>
 {% endblock %}
