@@ -7,11 +7,15 @@ from modules.media.models import Media
 from .forms import TaskForm
 from components.storage_component import StorageComponent
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.decorators import login_required, permission_required
 
 # Create your views here.
+@login_required(login_url="/login")
 def task_index(request):
     return render(request, 'task_index.html')
 
+@login_required(login_url="/login")
+@permission_required("task.maker", login_url="/login", raise_exception=True)
 def task_create(request):
     if request.method == 'POST':
         form = TaskForm(request.POST, request.FILES)
@@ -33,7 +37,7 @@ def task_create(request):
         form = TaskForm()
     return render(request, 'task_create.html', {'form': form})
 
-
+@login_required(login_url="/login")
 def task_update(request, task_id):
 
     storage = StorageComponent().disk('s3')
@@ -73,14 +77,15 @@ def task_update(request, task_id):
         form = TaskForm(instance=task)
     
     image_url = storage.generate_signed_url(existing_file.file_path)
+    print(image_url)
 
     return render(request, 'task_update.html', {'form': form, 'task': task, 'image_url': image_url, 'existing_file': existing_file})
 
 
 
-
 class DataTableTaskList(APIView):
 
+    @login_required(login_url="/login")
     def get(self, request, *args, **kwargs) -> Response:
         # Retrieve request parameters
         search_value = request.GET.get('search[value]', '')

@@ -9,3 +9,8 @@ class Task(models.Model):
 
     def __str__(self):
         return self.tutorial_title
+
+
+class Logging(models.Model):
+    task_id = models.BigIntegerField()
+    is_lock = models.BooleanField()
