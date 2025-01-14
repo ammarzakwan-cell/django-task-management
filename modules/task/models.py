@@ -1,4 +1,6 @@
 from django.db import models
+from django.contrib.auth.models import User
+from django.utils.timezone import now
 
 # Create your models here.
 class Task(models.Model):
@@ -8,9 +10,23 @@ class Task(models.Model):
     published = models.DateTimeField('date published')
 
     def __str__(self):
-        return self.tutorial_title
+        return self.title
 
 
-class Logging(models.Model):
-    task_id = models.BigIntegerField()
-    is_lock = models.BooleanField()
+class Locking(models.Model):
+    task_id = models.BigIntegerField(primary_key=True)
+    is_locked = models.BooleanField(default=False)
+    locked_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="locked_task")
+    locked_at = models.DateTimeField(null=True, blank=True)
+
+    
+    @staticmethod
+    def lock_task(user, task):
+        Locking.objects.update_or_create(
+            task_id=task.id,
+            defaults={
+                "is_locked": True,
+                "locked_by": user,
+                "locked_at": now(),
+            }
+        )

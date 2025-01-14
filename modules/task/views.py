@@ -1,13 +1,17 @@
 from django.shortcuts import get_object_or_404, render, redirect
+from django.contrib import messages
+from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
-from .models import Task
+from .models import Task, Locking
 from modules.media.models import Media
 from .forms import TaskForm
 from components.storage_component import StorageComponent
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.decorators import login_required, permission_required
+from django.views.decorators.csrf import csrf_exempt
 
 # Create your views here.
 @login_required(login_url="/login")
@@ -40,10 +44,19 @@ def task_create(request):
 @login_required(login_url="/login")
 def task_update(request, task_id):
 
-    storage = StorageComponent().disk('s3')
-
     # Get the task instance to update
     task = get_object_or_404(Task, id=task_id)
+
+    locking = Locking.objects.filter(task_id=task.id).first()
+
+    if locking and locking.is_locked and locking.locked_by != request.user:
+        messages.info(request, "This post is currently being edited by another user.")
+        return redirect('task_index')
+        
+
+    Locking.lock_task(request.user, task)
+
+    storage = StorageComponent().disk('s3')
 
     existing_file = Media.objects.filter(
         content_type=ContentType.objects.get_for_model(Task),
@@ -77,15 +90,24 @@ def task_update(request, task_id):
         form = TaskForm(instance=task)
     
     image_url = storage.generate_signed_url(existing_file.file_path)
-    print(image_url)
 
     return render(request, 'task_update.html', {'form': form, 'task': task, 'image_url': image_url, 'existing_file': existing_file})
+
+@csrf_exempt
+def unlock_task(request):
+    if request.method == "POST":
+        task_id = request.POST.get("task_id")
+        if task_id:
+            Locking.objects.filter(task_id=task_id).delete()
+            return JsonResponse({"status": "success", "message": "Task unlocked."})
+        return JsonResponse({"status": "error", "message": "Task ID not provided."}, status=400)
+    return JsonResponse({"status": "error", "message": "Invalid request method."}, status=405)
 
 
 
 class DataTableTaskList(APIView):
+    permission_classes = [IsAuthenticated]
 
-    @login_required(login_url="/login")
     def get(self, request, *args, **kwargs) -> Response:
         # Retrieve request parameters
         search_value = request.GET.get('search[value]', '')
