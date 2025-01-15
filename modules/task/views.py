@@ -19,7 +19,7 @@ def task_index(request):
     return render(request, 'task_index.html')
 
 @login_required(login_url="/login")
-@permission_required("task.maker", login_url="/login", raise_exception=True)
+@permission_required("task.add_task", login_url="/login", raise_exception=True)
 def task_create(request):
     if request.method == 'POST':
         form = TaskForm(request.POST, request.FILES)
