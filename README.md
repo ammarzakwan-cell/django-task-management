@@ -1,9 +1,22 @@
+##Setup Environment
+'''pip install virtualenv'''
+python -m venv venv
 Set-ExecutionPolicy Unrestricted -Scope Process
 env/Scripts/Activate.ps1
 
+##Install requirements
+pip install -r requirements.txt
+
+##Migrations
+python manage.py makemigrations
+python manage.py migrate
+
+##Seeder
 setup user
+'''
 from django.contrib.auth.models import User
 from django.utils.timezone import now
+
 
 users = [
     {"username": "user1", "password": "password1", "email": "user1@example.com"},
@@ -22,3 +35,4 @@ for user_data in users:
         is_active=True,
         date_joined=now(),
     )
+'''
