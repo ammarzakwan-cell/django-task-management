@@ -67,7 +67,6 @@
                     return editButton + deleteButton;
                 }
             },
-    
         ],
         "language": {
             search: '<i class="fa fa-filter" aria-hidden="true">Search</i>',
@@ -75,20 +74,18 @@
         },
     });
 
-    // Handle the Edit button click event
     $('#task_list tbody').on('click', '.edit-task', function () {
-        console.log($(this).data('edit_url'))
-        window.location.replace($(this).data('edit_url'))
+        window.location.replace($(this).data('edit_url'));
     });
-    $('#task_list tbody').on('click', '.delete-task', function () {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-        window.location.href = $(this).data('delete_url');
-    }
 
-    // Handle the Refresh button click event
-    $('#refresh_table').on('click', function () {
-        table.ajax.reload();
+    $('#task_list tbody').on('click', '.delete-task', function () {
+        if (window.confirm('Are you sure you want to delete this task?')) {
+            window.location.href = $(this).data('delete_url');
+        }
     });
-});
+
+    $('#refresh_table').on('click', function () {
+        table.ajax.reload(); // refresh datatable
+    });
 </script>
 {% endblock %}
