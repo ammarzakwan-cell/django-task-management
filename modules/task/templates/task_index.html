@@ -2,33 +2,40 @@
 {% block title %}task{% endblock %}
 
 {% block style %}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.2.1/css/dataTables.bootstrap5.css">
 {% endblock %}
 
 {% block content %}
 
-{% if 'maker' in user_groups %}
-<a href="/task/task_create" type="button" class="btn btn-primary mb-2">Create Task</a>
-<button id="refresh_table" class="btn btn-secondary mb-2">Refresh</button>
-{% endif %}
-<table id="task_list" class="display" style="width:100%;">
-    <thead>
-    <tr>
-        <th>Title</th>
-        <th>Source</th>
-        <th>Content</th>
-        <th></th>
-    </tr>
-    </thead>
-</table>
 
+
+<div class="card">
+    <div class="card-body">
+        {% if 'maker' in user_groups %}
+            <a href="/task/task_create" type="button" class="btn btn-primary mb-2">Create Task</a>
+            <button id="refresh_table" class="btn btn-secondary mb-2">Refresh</button>
+        {% endif %}
+        <table id="task_list" class="table table-hover" style="width:100%;">
+            <thead>
+            <tr>
+                <th>Title</th>
+                <th>Source</th>
+                <th>Content</th>
+                <th></th>
+            </tr>
+            </thead>
+        </table>
+    </div>
+  </div>
 
 {% endblock %}
 
 {% block script %}
-<script charset="utf8" src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script charset="utf8"
-        src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/2.2.1/js/dataTables.js"></script>
+<script src="https://cdn.datatables.net/2.2.1/js/dataTables.bootstrap5.js"></script>
 <script>
     let table = $('#task_list').DataTable({
         "ajax": {
