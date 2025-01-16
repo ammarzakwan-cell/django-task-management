@@ -15,6 +15,7 @@ class Media(models.Model):
     custom_properties = models.JSONField(default=dict, blank=True)  # Additional metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    disk = models.CharField(max_length=191, null=True)
 
     def __str__(self):
         return self.file_name
@@ -25,6 +26,7 @@ class Media(models.Model):
             file_path: str,
             mime_type: str,
             file_size: int,
+            disk: str,
             model_instance
     ):
         # Get the content type of the model instance
@@ -39,6 +41,7 @@ class Media(models.Model):
                 'file_name': file_name,
                 'file_path': file_path,
                 'mime_type': mime_type,
+                'disk': disk,
                 'size': file_size,
             }
         )

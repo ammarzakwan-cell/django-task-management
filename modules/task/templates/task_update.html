@@ -70,9 +70,8 @@
 {% block script %}
 <script>
     window.addEventListener('beforeunload', function () {
-        // Send an AJAX request to unlock the task
         navigator.sendBeacon('/task/task_unlock/', new URLSearchParams({
-            task_id: '{{ task.id }}' // Pass the task ID dynamically
+            task_id: '{{ task.id }}'
         }));
     });
 </script>

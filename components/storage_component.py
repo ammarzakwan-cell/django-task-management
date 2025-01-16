@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-import json
 from fs.osfs import OSFS
 from fs_s3fs import S3FS
 #from fs.sftpfs import SFTPFS
@@ -17,14 +16,14 @@ class StorageComponent:
         self.filesystem = {}
         self.active_disk = None
         self.disk_config = None
-        self.default_disk = 'local'  # Default disk can be set here
+        self.default_disk = 'local'  # Default disk
         
     def get_adapter(self):
         """Return the adapter (filesystem) for the selected disk."""
         if self.active_disk in self.filesystem:
             return self.filesystem[self.active_disk]
         
-        # If adapter is not already set, load the disk configuration
+        # set filesystem
         self.disk(self.active_disk)
         return self.filesystem.get(self.active_disk)
 
@@ -44,8 +43,8 @@ class StorageComponent:
                 self._create_s3_driver()
             else:
                 self._create_local_driver()
-        except Exception as e:
-            logging.error(f"Error initializing disk: {e}")
+        except Exception as exception:
+            logging.error(f"Error initializing disk: {exception}")
         return self
 
     """ def _create_sftp_driver(self):
@@ -58,8 +57,8 @@ class StorageComponent:
             port = sftp_config.get('port', 22)
             
             self.filesystem[self.active_disk] = SFTPFS(f"sftp://{username}:{password}@{host}:{port}")
-        except Exception as e:
-            logging.error(f"Error creating SFTP driver: {e}") """
+        except Exception as exception:
+            logging.error(f"Error creating SFTP driver: {exception}") """
 
     def _create_s3_driver(self):
         """Create S3 connection."""
@@ -77,34 +76,32 @@ class StorageComponent:
                 aws_secret_access_key=aws_secret_access_key,
                 region=region
             )
-        except Exception as e:
-            logging.error(f"Error creating S3 driver: {e}")
+        except Exception as exception:
+            logging.error(f"Error creating S3 driver: {exception}")
 
     def _create_local_driver(self):
         """Create local filesystem driver."""
         try:
             root = str(Path(self.disk_config.get('root', '/')).resolve())
             self.filesystem[self.active_disk] = OSFS(root)
-        except Exception as e:
-            logging.error(f"Error creating local driver: {e}")
+        except Exception as exception:
+            logging.error(f"Error creating local driver: {exception}")
     
     def write(self, path: str, content):
         """Store a file in the given filesystem."""
         try:
-            # Open the path in binary write mode
             with self.get_adapter().open(path, 'wb') as file:
-                if hasattr(content, 'chunks'):  # Handles Django UploadedFile objects
+                if hasattr(content, 'chunks'):
                     for chunk in content.chunks():
                         file.write(chunk)
                 else:
                     # Ensure content is bytes
                     if isinstance(content, str):
-                        content = content.encode()  # Convert string to bytes
-                    file.write(content)  # Write bytes to file
+                        content = content.encode()
+                    file.write(content)
 
-            print(f"File '{path}' stored successfully.")
-        except Exception as e:
-            logging.error(f"Error storing file '{path}': {e}")
+        except Exception as exception:
+            logging.error(f"Error storing file '{path}': {exception}")
 
 
     def get(self, path: str) -> str:
@@ -113,26 +110,25 @@ class StorageComponent:
             return self.get_adapter().readtext(path)
         except ResourceNotFound:
             logging.error(f"File '{path}' not found.")
-        except Exception as e:
-            logging.error(f"Error reading file '{path}': {e}")
+        except Exception as exception:
+            logging.error(f"Error reading file '{path}': {exception}")
 
     def remove(self, path: str):
         """Delete a file from the given filesystem."""
         try:
 
             self.get_adapter().remove(path)
-            print(f"File '{path}' deleted successfully.")
         except ResourceNotFound:
             logging.error(f"File '{path}' not found.")
-        except Exception as e:
-            logging.error(f"Error deleting file '{path}': {e}")
+        except Exception as exception:
+            logging.error(f"Error deleting file '{path}': {exception}")
 
     def is_exist(self, path: str) -> bool:
         """Check if a file exists in the given filesystem."""
         try:
             return self.get_adapter().exists(path)
-        except Exception as e:
-            logging.error(f"Error checking file existence for '{path}': {e}")
+        except Exception as exception:
+            logging.error(f"Error checking file existence for '{path}': {exception}")
             return False
 
     def put(self, source_path: str, dest_path: str):
@@ -146,9 +142,8 @@ class StorageComponent:
         try:
             with open(source_path, 'rb') as local_file:
                 self.get_adapter().writebytes(dest_path, local_file.read())
-            print(f"File '{source_path}' uploaded to '{dest_path}' successfully.")
-        except Exception as e:
-            logging.error(f"Error uploading file '{source_path}' to '{dest_path}': {e}")
+        except Exception as exception:
+            logging.error(f"Error uploading file '{source_path}' to '{dest_path}': {exception}")
 
     def listing(self, directory: str = "/") -> list:
         """
@@ -164,48 +159,48 @@ class StorageComponent:
         except ResourceNotFound:
             logging.error(f"Directory '{directory}' not found.")
             return []
-        except Exception as e:
-            logging.error(f"Error listing directory '{directory}': {e}")
+        except Exception as exception:
+            logging.error(f"Error listing directory '{directory}': {exception}")
             return []
         
     def move(self, src_path: str, dst_path: str, overwrite: bool = False):
         try:
             return self.get_adapter().move(src_path, dst_path, overwrite)
-        except Exception as e:
-            logging.error(f"Error moving file '{src_path}' to '{dst_path}': {e}")
+        except Exception as exception:
+            logging.error(f"Error moving file '{src_path}' to '{dst_path}': {exception}")
 
     def upload_file(self, file, model_instance, collection_name: str = "media"):
 
-        # Generate file details
         file_name = file.name
-        file_path = f"{collection_name}/{file_name}"  # Customize the S3 path
+        file_path = f"{collection_name}/{file_name}"
         mime_type = file.content_type
         file_size = file.size
 
         # Upload the file to S3
         self.write(file_path, file)
 
-        # Create a Media entry
+        # Upload or insert into Media model
         Media.upsert(
             collection_name=collection_name,
             file_name=file_name,
             file_path=file_path,
             mime_type=mime_type,
             file_size=file_size,
+            disk=self.active_disk,
             model_instance=model_instance
         )
 
     def get_public_url(self, file_path: str) -> str:
         """Generate a public URL for the given file."""
-        return self.get_adapter().geturl(file_path)  # Ensure this generates the URL
+        return self.get_adapter().geturl(file_path)
 
-    def generate_signed_url(self, object_name, expiration: int=3600):
+    def generate_signed_url(self, object_name, expiration: int=900):
         """
         Generate a presigned URL for accessing a file in S3.
         :param file_path: The S3 key (file path in the bucket)
         :param bucket_name: Name of the S3 bucket
         :param region: AWS region
-        :param expiration: URL expiration time in seconds (default 1 hour)
+        :param expiration: URL expiration time in seconds (default 15 minutes)
         :return: Signed URL string
         """
         s3_config = self.disk_config.get('s3')
@@ -226,8 +221,8 @@ class StorageComponent:
                 ExpiresIn=expiration
             )
             return response
-        except ClientError as e:
-            logging.error(f"Could not generate signed URL: {e}")
+        except ClientError as exception:
+            logging.error(f"Could not generate signed URL: {exception}")
             return None
 
 

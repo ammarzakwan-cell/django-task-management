@@ -9,7 +9,7 @@
 
 {% if 'maker' in user_groups %}
 <a href="/task/task_create" type="button" class="btn btn-primary mb-2">Create Task</a>
-<button id="refresh_table" class="btn btn-secondary" style="margin-bottom: 10px;">Refresh</button>
+<button id="refresh_table" class="btn btn-secondary mb-2">Refresh</button>
 {% endif %}
 <table id="task_list" class="display" style="width:100%;">
     <thead>
@@ -48,7 +48,8 @@
                 "orderable": false, // Disable sorting for this column
                 "searchable": false, // Disable searching for this column
                 "render": function (data, type, row) {
-                    return '<button class="btn btn-primary edit-task" data-edit_url ="' + row.edit_url + '">Edit</button>';
+                    return '<button class="btn btn-primary edit-task ml-2" data-edit_url ="' + row.edit_url + '">Edit</button>' +
+                    '<button class="btn btn-danger delete-task" data-delete_url="' + row.delete_url + '">Delete</button>';
                 }
             },
     
@@ -64,10 +65,15 @@
         console.log($(this).data('edit_url'))
         window.location.replace($(this).data('edit_url'))
     });
+    $('#task_list tbody').on('click', '.delete-task', function () {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+        window.location.href = $(this).data('delete_url');
+    }
 
     // Handle the Refresh button click event
     $('#refresh_table').on('click', function () {
         table.ajax.reload();
     });
+});
 </script>
 {% endblock %}

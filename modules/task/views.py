@@ -16,17 +16,19 @@ from datetime import datetime
 from django.utils.timezone import make_aware
 
 # Create your views here.
+
+# Landing page for task, showing list in datatable format
 @login_required(login_url="/login")
 def task_index(request):
     user_groups = request.user.groups.values_list('name', flat=True)
     return render(request, 'task_index.html', {'user_groups': user_groups})
 
+# Creating task 
 @login_required(login_url="/login")
 @permission_required("task.add_task", login_url="/login", raise_exception=True)
 def task_create(request):
     if request.method == 'POST':
             
-        # Save the Task instance
         task = Task.objects.create(
             title=request.POST.get('title'),
             source=request.POST.get('source'),
@@ -34,86 +36,119 @@ def task_create(request):
             published=make_aware(datetime.strptime(request.POST.get('date'), "%Y-%m-%d")) if request.POST.get('date') else None
         )
 
-
-        # Upload the file and associate it with the Task
-        # Check if a new file is uploaded
         if 'file' in request.FILES:
             file = request.FILES['file']
             storage = StorageComponent()
             storage.disk('s3').upload_file(file, model_instance=task, collection_name="data_entry_task")
 
-        return redirect('task_index')  # Redirect to a task list page
+        messages.success(request, "Task created successfully.")
+        return redirect('task_index')
     
     return render(request, 'task_create.html')
 
-
+# Updating task
 @login_required(login_url="/login")
 def task_update(request, task_id):
+    try:
+        task = get_object_or_404(Task, id=task_id)
 
-    # Get the task instance to update
-    task = get_object_or_404(Task, id=task_id)
+        locking = Locking.objects.filter(task_id=task.id).first()
+        if locking and locking.is_locked and locking.locked_by != request.user:
+            messages.warning(request, "This task is currently being edited by another user.")
+            return redirect('task_index')
 
-    locking = Locking.objects.filter(task_id=task.id).first()
+        Locking.lock_task(request.user, task)
 
-    if locking and locking.is_locked and locking.locked_by != request.user:
-        messages.info(request, "This post is currently being edited by another user.")
-        return redirect('task_index')
-        
+        storage = StorageComponent().disk('s3')
+        existing_file = Media.objects.filter(
+            content_type=ContentType.objects.get_for_model(Task),
+            object_id=task.id
+        ).first()
 
-    Locking.lock_task(request.user, task)
+        if request.method == 'POST':
+            task.title = request.POST.get('title', task.title)
+            task.source = request.POST.get('source', task.source)
+            task.content = request.POST.get('content', task.content)
+            
+            try:
+                published_date = request.POST.get('date')
+                task.published = make_aware(datetime.strptime(published_date, "%Y-%m-%d")) if published_date else task.published
+            except ValueError:
+                messages.error(request, "Invalid date format.")
+                return redirect('task_update', task_id=task_id)
 
-    storage = StorageComponent().disk('s3')
+            task.save()
 
-    existing_file = Media.objects.filter(
-        content_type=ContentType.objects.get_for_model(Task),
-        object_id=task.id
-    ).first()
+            if 'file' in request.FILES:
+                file = request.FILES['file']
 
-    if request.method == 'POST':
+                if existing_file and storage.is_exist(existing_file.file_path):
+                    storage.remove(existing_file.file_path)
 
-        # Save updated Task instance
-        task.title = request.POST.get('title')
-        task.source = request.POST.get('source')
-        task.content = request.POST.get('content')
-        task.published = make_aware(datetime.strptime(request.POST.get('date'), "%Y-%m-%d"))
-        task.save()
+                storage.upload_file(
+                    file, model_instance=task, collection_name="data_entry_task"
+                )
 
-        # Check if a new file is uploaded
-        if 'file' in request.FILES:
-            file = request.FILES['file']
+            messages.success(request, "Task updated successfully.")
+            return redirect('task_index')
 
-            # Delete the old file from S3
-            if existing_file and storage.is_exist(existing_file.file_path):
-                storage.remove(existing_file.file_path)
+        else:
+            user_groups = request.user.groups.values_list('name', flat=True)
+            image_url = None
+            image_to_text = None
 
-            storage.upload_file(
-                file, model_instance=task, collection_name="data_entry_task"
-            )
+            if existing_file:
+                image_url = storage.generate_signed_url(existing_file.file_path)
+                image_to_text = ImageComponent.image_to_text(image_url=image_url)
 
-        return redirect('task_index')  # Redirect to a task list page
-    else:
-        user_groups = request.user.groups.values_list('name', flat=True)
-        image_url = None
-        image_to_text = None
-        if existing_file:
-            image_url = storage.generate_signed_url(existing_file.file_path)
-            image_to_text = ImageComponent.image_to_text(image_url=image_url)
-
-        return render(request, 'task_update.html', {
-            'task': task, 
-            'image_url': image_url, 
-            'image_to_text': image_to_text,
-            'existing_file': existing_file, 
-            'user_groups': user_groups
+            return render(request, 'task_update.html', {
+                'task': task,
+                'image_url': image_url,
+                'image_to_text': image_to_text,
+                'existing_file': existing_file,
+                'user_groups': user_groups
             })
 
-
+    except Exception as exception:
+        messages.error(request, f"An unexpected error occurred: {str(exception)}")
+        return redirect('task_index')
     
 
+# Deleting taks
+@permission_required("task.delete_task", login_url="/login", raise_exception=True)
+@login_required(login_url="/login")
+def task_delete(request, task_id):
+    try:
+        existing_file = Media.objects.filter(
+            content_type=ContentType.objects.get_for_model(Task),
+            object_id=task_id
+        ).first()
 
+        task = get_object_or_404(Task, id=task_id)
+        task.delete()
+
+        storage = StorageComponent().disk('s3')
+        if existing_file and storage.is_exist(existing_file.file_path):
+            storage.remove(existing_file.file_path)
+            existing_file.delete()
+
+        messages.success(request, "Task and associated files deleted successfully.")
+        return redirect("task_index")
+
+    except Exception as exception:
+        messages.error(request, f"An error occurred: {str(exception)}")
+        return redirect("task_index")
+
+
+# Deleting locking_task object
 @login_required(login_url="/login")
 @csrf_exempt
 def unlock_task(request):
+    """
+    Javascript asynchronously sends an HTTP POST request once user leave the page. 
+    This function is for locking task, when user leave it will delete the locking object 
+    so that other users can open the task
+    """
     if request.method == "POST":
         task_id = request.POST.get("task_id")
         if task_id:
@@ -123,32 +158,30 @@ def unlock_task(request):
     return JsonResponse({"status": "error", "message": "Invalid request method."}, status=405)
 
 
-
+# Using rest framework API to datatable
 class DataTableTaskList(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs) -> Response:
-        # Retrieve request parameters
+        # Parameter from datatable
         search_value = request.GET.get('search[value]', '')
         start = int(request.GET.get('start', 0))
         length = int(request.GET.get('length', 10))
         order_column_index = int(request.GET.get('order[0][column]', 0))
         order_dir = request.GET.get('order[0][dir]', 'asc')
 
-        # Define columns mapping (DataTables column names)
-        columns = ['title', 'source', 'content']  # Adjust to match your model fields
+        columns = ['title', 'source', 'content']
 
-        # Base QuerySet
         queryset = Task.objects.all()
 
-        # Apply search filter
+        # Q search filter
         if search_value:
             queryset = queryset.filter(
                 Q(title__icontains=search_value) | 
                 Q(source__icontains=search_value)
             )
 
-        # Calculate the filtered count before slicing
+        # Total filtered records
         records_filtered = queryset.count()
 
         # Apply ordering
@@ -167,7 +200,6 @@ class DataTableTaskList(APIView):
         # Total record count
         records_total = Task.objects.count()
 
-        # Prepare response data
         data = [
             {
                 'title': obj.title,
@@ -175,13 +207,14 @@ class DataTableTaskList(APIView):
                 'content': obj.content,
                 'id': obj.id,
                 'edit_url': '/task/task_update/' + str(obj.id),
+                'delete_url': '/task/task_delete/' + str(obj.id),
             }
             for obj in queryset
         ]
 
-        # Return JSON response
+        # Return JSON
         return Response({
-            'draw': int(request.GET.get('draw', 1)),  # Pass-through value from DataTables
+            'draw': int(request.GET.get('draw', 1)),
             'recordsTotal': records_total,
             'recordsFiltered': records_filtered,
             'data': data,
