@@ -20,6 +20,8 @@ python manage.py migrate
 
 ## Seeder
 ### setup user
+run in shell
+> python manage.py shell
 ```
 from django.contrib.auth.models import User
 from django.utils.timezone import now
