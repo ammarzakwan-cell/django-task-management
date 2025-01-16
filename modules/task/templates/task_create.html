@@ -2,9 +2,43 @@
 {% block title %}task_create{% endblock %}
 
 {% block content %}
-<form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Submit</button>
-</form>
+<div class="container mt-5">
+    <h2 class="mb-4">Upload Form</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <!-- Title Field -->
+        <div class="mb-3">
+            <label for="title" class="form-label">Title</label>
+            <input type="text" class="form-control" id="title" name="title" required>
+        </div>
+
+        <!-- Source Field -->
+        <div class="mb-3">
+            <label for="source" class="form-label">Source</label>
+            <input type="text" class="form-control" id="source" name="source" required>
+        </div>
+
+        <!-- Content Field -->
+        <div class="mb-3">
+            <label for="content" class="form-label">Content</label>
+            <textarea class="form-control" id="content" name="content" rows="4" required></textarea>
+        </div>
+
+        <!-- Date Field -->
+        <div class="mb-3">
+            <label for="date" class="form-label">Date</label>
+            <input type="date" class="form-control" id="date" name="date" required>
+        </div>
+
+        <!-- File Upload Field -->
+        <div class="mb-3">
+            <label for="fileUpload" class="form-label">Upload File</label>
+            <input type="file" class="filepond" id="fileUpload" name="file" required>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary">Submit</button>
+        <a href="/task" type="button" class="btn btn-danger">Cancel</a>
+    </form>
+</div>
 {% endblock %}

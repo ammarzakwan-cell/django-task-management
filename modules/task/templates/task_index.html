@@ -7,7 +7,9 @@
 
 {% block content %}
 
-<a href="/task/task_create" type="button" class="btn btn-primary">Create Task</a>
+{% if 'maker' in user_groups %}
+<a href="/task/task_create" type="button" class="btn btn-primary mb-2">Create Task</a>
+{% endif %}
 <table id="task_list" class="display" style="width:100%;">
     <thead>
     <tr>

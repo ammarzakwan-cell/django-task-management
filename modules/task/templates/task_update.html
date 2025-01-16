@@ -3,19 +3,63 @@
 
 {% block content %}
 
-<a href="/task" type="button" class="btn btn-primary">Task List</a>
-{% if existing_file %}
-            <div>
-                <p>Current File:</p>
-                <img src="{{ image_url }}" alt="Uploaded File" style="max-width: 500px; max-height: 500px;">
-            </div>
+<div class="container mt-5">
+    
+    <div class="row">
+        <!-- Left Column: Image -->
+        {% if existing_file %}
+        <div class="col-md-6 mb-3">
+            <img src="{{ image_url }}" alt="Reference Image" class="img-fluid rounded">
+        </div>
         {% endif %}
 
-<form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Submit</button>
-</form>
+        <!-- Right Column: Form -->
+        <div class="col-md-6">
+            <h2 class="mb-4">Upload Form</h2>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <!-- Title Field -->
+                <div class="mb-3">
+                    <label for="title" class="form-label">Title</label>
+                    <input type="text" class="form-control" id="title" name="title" value="{{ task.title }}" required>
+                </div>
+
+                <!-- Source Field -->
+                <div class="mb-3">
+                    <label for="source" class="form-label">Source</label>
+                    <input type="text" class="form-control" id="source" name="source" value="{{ task.source }}" required>
+                </div>
+
+                <!-- Content Field -->
+                <div class="mb-3">
+                    <label for="content" class="form-label">Content</label>
+                    <textarea class="form-control" id="content" name="content" rows="4" required>{{ task.content }}</textarea>
+                </div>
+
+                <!-- Date Field -->
+                <div class="mb-3">
+                    <label for="date" class="form-label">Date Published</label>
+                    <input type="date" class="form-control" id="date" name="date" value="{{ task.published|date:'Y-m-d' }}" required>
+                </div>
+
+                {% if 'maker' in user_groups %}
+                <!-- File Upload Field -->
+                <div class="mb-3">
+                    <label for="fileUpload" class="form-label">Upload File</label>
+                    <input type="file" class="form-label" id="fileUpload" name="file">
+                    <!-- Display the existing file -->
+                    <p class="mt-2">Current file: <a href="{{ image_url }}" target="_blank">{{ existing_file.file_name }}</a></p>
+                </div>
+                {% endif %}
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary">Submit</button>
+                <a href="/task" type="button" class="btn btn-danger">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block script %}
@@ -27,5 +71,4 @@
         }));
     });
 </script>
-
 {% endblock %}
