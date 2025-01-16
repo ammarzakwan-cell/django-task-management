@@ -1,19 +1,25 @@
-##Setup Environment
-'''pip install virtualenv'''
+# Project Setup
+## Setup Environment
+```pip install virtualenv
 python -m venv venv
 Set-ExecutionPolicy Unrestricted -Scope Process
 env/Scripts/Activate.ps1
+```
 
-##Install requirements
+## Install requirements
+```
 pip install -r requirements.txt
+```
 
-##Migrations
+## Migrations
+```
 python manage.py makemigrations
 python manage.py migrate
+```
 
-##Seeder
-setup user
-'''
+## Seeder
+### setup user
+```
 from django.contrib.auth.models import User
 from django.utils.timezone import now
 
@@ -35,4 +41,4 @@ for user_data in users:
         is_active=True,
         date_joined=now(),
     )
-'''
+```
