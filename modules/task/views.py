@@ -8,6 +8,7 @@ from django.db.models import Q
 from .models import Task, Locking 
 from modules.media.models import Media
 from components.storage_component import StorageComponent
+from components.image_component import ImageComponent
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.decorators import login_required, permission_required
 from django.views.decorators.csrf import csrf_exempt
@@ -68,8 +69,6 @@ def task_update(request, task_id):
         object_id=task.id
     ).first()
 
-    print(existing_file, task.id)
-
     if request.method == 'POST':
 
         # Save updated Task instance
@@ -95,11 +94,15 @@ def task_update(request, task_id):
     else:
         user_groups = request.user.groups.values_list('name', flat=True)
         image_url = None
+        image_to_text = None
         if existing_file:
             image_url = storage.generate_signed_url(existing_file.file_path)
+            image_to_text = ImageComponent.image_to_text(image_url=image_url)
+
         return render(request, 'task_update.html', {
             'task': task, 
             'image_url': image_url, 
+            'image_to_text': image_to_text,
             'existing_file': existing_file, 
             'user_groups': user_groups
             })

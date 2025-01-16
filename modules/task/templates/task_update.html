@@ -7,9 +7,14 @@
     
     <div class="row">
         <!-- Left Column: Image -->
-        {% if existing_file %}
+        {% if image_url %}
         <div class="col-md-6 mb-3">
             <img src="{{ image_url }}" alt="Reference Image" class="img-fluid rounded">
+            {% if image_to_text %}
+            <div class="mb-3">
+                <p>{{ image_to_text }}</p>
+            </div>
+            {% endif %}
         </div>
         {% endif %}
 

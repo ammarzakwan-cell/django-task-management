@@ -9,6 +9,7 @@
 
 {% if 'maker' in user_groups %}
 <a href="/task/task_create" type="button" class="btn btn-primary mb-2">Create Task</a>
+<button id="refresh_table" class="btn btn-secondary" style="margin-bottom: 10px;">Refresh</button>
 {% endif %}
 <table id="task_list" class="display" style="width:100%;">
     <thead>
@@ -62,6 +63,11 @@
     $('#task_list tbody').on('click', '.edit-task', function () {
         console.log($(this).data('edit_url'))
         window.location.replace($(this).data('edit_url'))
+    });
+
+    // Handle the Refresh button click event
+    $('#refresh_table').on('click', function () {
+        table.ajax.reload();
     });
 </script>
 {% endblock %}
