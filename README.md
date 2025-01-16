@@ -1,6 +1,7 @@
 # Project Setup
 ## Setup Environment
 ```pip install virtualenv
+pip install virtualenv
 python -m venv venv
 Set-ExecutionPolicy Unrestricted -Scope Process
 env/Scripts/Activate.ps1
