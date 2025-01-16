@@ -1,13 +1,19 @@
+import hashlib
 import logging
+import os
+import time
 from pathlib import Path
-from fs.osfs import OSFS
-from fs_s3fs import S3FS
-#from fs.sftpfs import SFTPFS
-from fs.errors import ResourceNotFound
-from modules.media.models import Media
+from uuid import uuid4
+
 import boto3
 from botocore.exceptions import ClientError
+from fs.errors import ResourceNotFound
+from fs.osfs import OSFS
+from fs_s3fs import S3FS
+
 from config.storage import config
+from modules.media.models import Media
+
 
 class StorageComponent:
 
@@ -172,9 +178,12 @@ class StorageComponent:
     def upload_file(self, file, model_instance, collection_name: str = "media"):
 
         file_name = file.name
-        file_path = f"{collection_name}/{file_name}"
-        mime_type = file.content_type
-        file_size = file.size
+        # Extract file extension, e.g., ".jpg" or ".pdf"
+        _, ext = os.path.splitext(file_name)
+        unique_name = f"{hashlib.sha256(f"{time.time()}-{uuid4()}".encode('utf-8')).hexdigest()}{ext}"
+        file_path = f"{collection_name}/{unique_name}"
+        file.name = unique_name
+        print(file_name, file.name)
 
         # Upload the file to S3
         self.write(file_path, file)
@@ -184,8 +193,8 @@ class StorageComponent:
             collection_name=collection_name,
             file_name=file_name,
             file_path=file_path,
-            mime_type=mime_type,
-            file_size=file_size,
+            mime_type=file.content_type,
+            file_size=file.size,
             disk=self.active_disk,
             model_instance=model_instance
         )

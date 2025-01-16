@@ -1,19 +1,20 @@
-from django.shortcuts import get_object_or_404, render, redirect
+from components.image_component import ImageComponent
+from components.storage_component import StorageComponent
+from datetime import datetime
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Q
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render, redirect
+from django.utils.timezone import make_aware
+from django.views.decorators.csrf import csrf_exempt
+from modules.media.models import Media
+from modules.task.models import Task, Locking 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Q
-from .models import Task, Locking 
-from modules.media.models import Media
-from components.storage_component import StorageComponent
-from components.image_component import ImageComponent
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.auth.decorators import login_required, permission_required
-from django.views.decorators.csrf import csrf_exempt
-from datetime import datetime
-from django.utils.timezone import make_aware
+
 
 # Create your views here.
 
@@ -27,24 +28,32 @@ def task_index(request):
 @login_required(login_url="/login")
 @permission_required("task.add_task", login_url="/login", raise_exception=True)
 def task_create(request):
-    if request.method == 'POST':
-            
-        task = Task.objects.create(
-            title=request.POST.get('title'),
-            source=request.POST.get('source'),
-            content=request.POST.get('content'),
-            published=make_aware(datetime.strptime(request.POST.get('date'), "%Y-%m-%d")) if request.POST.get('date') else None
-        )
+    try:
+        if request.method == 'POST':
+                
+            task = Task.objects.create(
+                title=request.POST.get('title'),
+                source=request.POST.get('source'),
+                content=request.POST.get('content'),
+                published=make_aware(datetime.strptime(request.POST.get('date'), "%Y-%m-%d")) if request.POST.get('date') else None
+            )
 
-        if 'file' in request.FILES:
-            file = request.FILES['file']
-            storage = StorageComponent()
-            storage.disk('s3').upload_file(file, model_instance=task, collection_name="data_entry_task")
+            try:
+                if 'file' in request.FILES:
+                    file = request.FILES['file']
+                    storage = StorageComponent()
+                    storage.disk('s3').upload_file(file, model_instance=task, collection_name="data_entry_task")
+            except Exception as exception:
+                messages.error(request, str(exception))
+                return redirect('task_index')
 
-        messages.success(request, "Task created successfully.")
+            messages.success(request, "Task created successfully.")
+            return redirect('task_index')
+        
+        return render(request, 'task_create.html')
+    except Exception as exception:
+        messages.error(request, f"An unexpected error occurred: {str(exception)}")
         return redirect('task_index')
-    
-    return render(request, 'task_create.html')
 
 # Updating task
 @login_required(login_url="/login")
@@ -79,16 +88,19 @@ def task_update(request, task_id):
 
             task.save()
 
-            if 'file' in request.FILES:
-                file = request.FILES['file']
+            try:
+                if 'file' in request.FILES:
+                    file = request.FILES['file']
+                    storage.upload_file(file, model_instance=task, collection_name="data_entry_task")
+                    if existing_file and storage.is_exist(existing_file.file_path):
+                        storage.remove(existing_file.file_path)
 
-                if existing_file and storage.is_exist(existing_file.file_path):
-                    storage.remove(existing_file.file_path)
+                    
+            except Exception as exception:
+                messages.error(request, str(exception))
+                return redirect('task_update', task_id=task_id)
 
-                storage.upload_file(
-                    file, model_instance=task, collection_name="data_entry_task"
-                )
-
+            Locking.objects.filter(task_id=task_id).delete()
             messages.success(request, "Task updated successfully.")
             return redirect('task_index')
 
