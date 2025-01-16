@@ -13,6 +13,21 @@ pip install -r requirements.txt
 ```
 
 ## Migrations
+
+### create table task_locking
+field = id=PK, task_id=BIGINT, is_locked=BOOLEAN, loacked_at=DATETIME
+create table.
+```
+// SQL
+CREATE TABLE task_locking (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    task_id BIGINT NOT NULL,
+    is_locked BOOLEAN NOT NULL DEFAULT FALSE,
+    locked_at DATETIME DEFAULT NULL
+);
+```
+
+### run migration
 ```
 python manage.py makemigrations
 python manage.py migrate
