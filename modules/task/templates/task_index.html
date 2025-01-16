@@ -14,8 +14,9 @@
     <div class="card-body">
         {% if 'maker' in user_groups %}
             <a href="/task/task_create" type="button" class="btn btn-primary mb-2">Create Task</a>
-            <button id="refresh_table" class="btn btn-secondary mb-2">Refresh</button>
         {% endif %}
+        <button id="refresh_table" class="btn btn-secondary mb-2">Refresh</button>
+        
         <table id="task_list" class="table table-hover" style="width:100%;">
             <thead>
             <tr>
@@ -55,8 +56,15 @@
                 "orderable": false, // Disable sorting for this column
                 "searchable": false, // Disable searching for this column
                 "render": function (data, type, row) {
-                    return '<button class="btn btn-primary edit-task ml-2" data-edit_url ="' + row.edit_url + '">Edit</button>' +
-                    '<button class="btn btn-danger delete-task" data-delete_url="' + row.delete_url + '">Delete</button>';
+                    let editButtonClass = row.is_locked ? 'btn-danger' : 'btn-primary';
+                    let editButton = '<button class="btn ' + editButtonClass + ' edit-task" data-edit_url ="' + row.edit_url + '">Edit</button>';
+                    let deleteButton = '';
+
+                    // Check if the user is part of the "maker" group
+                    if (row.user_groups && row.user_groups.includes('maker')) {
+                        deleteButton = '<button class="btn btn-danger delete-task" data-delete_url="' + row.delete_url + '">Delete</button>';
+                    }
+                    return editButton + deleteButton;
                 }
             },
     

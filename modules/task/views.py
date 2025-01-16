@@ -208,6 +208,8 @@ class DataTableTaskList(APIView):
                 'id': obj.id,
                 'edit_url': '/task/task_update/' + str(obj.id),
                 'delete_url': '/task/task_delete/' + str(obj.id),
+                'is_locked': Locking.objects.filter(task_id=str(obj.id)).exists(),
+                'user_groups': request.user.groups.values_list('name', flat=True),
             }
             for obj in queryset
         ]
