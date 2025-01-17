@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.timezone import make_aware
 from django.views.decorators.csrf import csrf_exempt
 from modules.media.models import Media
-from modules.task.models import Task, Locking 
+from modules.task.models import Task 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -61,12 +61,11 @@ def task_update(request, task_id):
     try:
         task = get_object_or_404(Task, id=task_id)
 
-        locking = Locking.objects.filter(task_id=task.id).first()
-        if locking and locking.is_locked and locking.locked_by != request.user:
+        if task.is_locked and task.locked_by != request.user:
             messages.warning(request, "This task is currently being edited by another user.")
             return redirect('task_index')
 
-        Locking.lock_task(request.user, task)
+        task.lock_task(request.user)
 
         storage = StorageComponent().disk('s3')
         existing_file = Media.objects.filter(
@@ -100,7 +99,7 @@ def task_update(request, task_id):
                 messages.error(request, str(exception))
                 return redirect('task_update', task_id=task_id)
 
-            Locking.objects.filter(task_id=task_id).delete()
+            task.unlock_task(request.user)
             messages.success(request, "Task updated successfully.")
             return redirect('task_index')
 
@@ -111,7 +110,7 @@ def task_update(request, task_id):
 
             if existing_file:
                 image_url = storage.generate_signed_url(existing_file.file_path)
-                image_to_text = ImageComponent.image_to_text(image_url=image_url)
+                #image_to_text = ImageComponent.image_to_text(image_url=image_url)
 
             return render(request, 'task_update.html', {
                 'task': task,
@@ -142,7 +141,6 @@ def task_delete(request, task_id):
         storage = StorageComponent().disk('s3')
         if existing_file and storage.is_exist(existing_file.file_path):
             storage.remove(existing_file.file_path)
-            existing_file.delete()
 
         messages.success(request, "Task and associated files deleted successfully.")
         return redirect("task_index")
@@ -164,7 +162,8 @@ def unlock_task(request):
     if request.method == "POST":
         task_id = request.POST.get("task_id")
         if task_id:
-            Locking.objects.filter(task_id=task_id).delete()
+            task = Task.objects.filter(id=task_id).first()
+            task.unlock_task()
             return JsonResponse({"status": "success", "message": "Task unlocked."})
         return JsonResponse({"status": "error", "message": "Task ID not provided."}, status=400)
     return JsonResponse({"status": "error", "message": "Invalid request method."}, status=405)
@@ -220,7 +219,7 @@ class DataTableTaskList(APIView):
                 'id': obj.id,
                 'edit_url': '/task/task_update/' + str(obj.id),
                 'delete_url': '/task/task_delete/' + str(obj.id),
-                'is_locked': Locking.objects.filter(task_id=str(obj.id)).exists(),
+                'is_locked': obj.is_locked,
                 'user_groups': request.user.groups.values_list('name', flat=True),
             }
             for obj in queryset
