@@ -180,7 +180,8 @@ class StorageComponent:
         file_name = file.name
         # Extract file extension, e.g., ".jpg" or ".pdf"
         _, ext = os.path.splitext(file_name)
-        unique_name = f"{hashlib.sha256(f"{time.time()}-{uuid4()}".encode('utf-8')).hexdigest()}{ext}"
+        unique_name = f"{hashlib.sha256((str(time.time()) + '-' + str(uuid4())).encode('utf-8')).hexdigest()}{ext}"
+        #unique_name = f"{hashlib.sha256(f"{time.time()}-{uuid4()}".encode('utf-8')).hexdigest()}{ext}"
         file_path = f"{collection_name}/{unique_name}"
         file.name = unique_name
         print(file_name, file.name)
