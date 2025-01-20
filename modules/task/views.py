@@ -99,7 +99,7 @@ def task_update(request, task_id):
                 messages.error(request, str(exception))
                 return redirect('task_update', task_id=task_id)
 
-            task.unlock_task(request.user)
+            task.unlock_task()
             messages.success(request, "Task updated successfully.")
             return redirect('task_index')
 
