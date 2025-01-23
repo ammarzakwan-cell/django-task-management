@@ -110,8 +110,6 @@ def task_update(request, task_id):
 
             if existing_file:
                 image_url = storage.generate_signed_url(existing_file.file_path)
-            else:
-                image_url = "https://lightwidget.com/wp-content/uploads/localhost-file-not-found-480x480.avif"
                 #image_to_text = ImageComponent.image_to_text(image_url=image_url)
 
             return render(request, 'task_update.html', {

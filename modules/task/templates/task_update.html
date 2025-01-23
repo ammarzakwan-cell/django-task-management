@@ -8,15 +8,21 @@
     <div class="row">
         <!-- Left Column: Image -->
         {% if image_url %}
-        <div class="col-md-6 mb-3">
-            <img src="{{ image_url }}" alt="Reference Image" class="img-fluid rounded">
-            {% if image_to_text %}
-            <div class="mb-3">
-                <p>{{ image_to_text }}</p>
+            <div class="col-md-6 mb-3">
+                <img src="{{ image_url }}" alt="Reference Image" class="img-fluid rounded">
+                {% if image_to_text %}
+                <div class="mb-3">
+                    <p>{{ image_to_text }}</p>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
-        </div>
+        {% else %}
+            {% load static %}
+            <div class="col-md-6 mb-3">
+                <img src="{% static 'img/not-found.webp' %}" alt="Image not found" class="img-fluid rounded">
+            </div>
         {% endif %}
+
 
         <!-- Right Column: Form -->
         <div class="col-md-6">
