@@ -4,6 +4,7 @@ from datetime import datetime
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -112,6 +113,7 @@ def task_update(request, task_id):
                 image_url = storage.generate_signed_url(existing_file.file_path)
                 #image_to_text = ImageComponent.image_to_text(image_url=image_url)
 
+            print(image_url)
             return render(request, 'task_update.html', {
                 'task': task,
                 'image_url': image_url,
@@ -130,15 +132,22 @@ def task_update(request, task_id):
 @login_required(login_url="/login")
 def task_delete(request, task_id):
     try:
-        existing_file = Media.objects.filter(
-            content_type=ContentType.objects.get_for_model(Task),
-            object_id=task_id
-        ).first()
-
-        task = get_object_or_404(Task, id=task_id)
-        task.delete()
-
         storage = StorageComponent().disk('s3')
+
+        with transaction.atomic():
+            # Retrieve the associated file
+            existing_file = Media.objects.filter(
+                content_type=ContentType.objects.get_for_model(Task),
+                object_id=task_id
+            ).first()
+
+            task = get_object_or_404(Task, id=task_id)
+            task.delete()
+
+            if existing_file:
+                print(existing_file.delete())
+
+        # if no exception thrown in transaction then we confirm delete the file in storage
         if existing_file and storage.is_exist(existing_file.file_path):
             storage.remove(existing_file.file_path)
 
@@ -214,8 +223,8 @@ class DataTableTaskList(APIView):
         data = [
             {
                 'title': obj.title,
-                'source': obj.source,
-                'content': obj.content,
+                'source': (obj.source[:30] + "...") if len(obj.source) > 10 else obj.source,
+                'content': (obj.content[:50] + "...") if len(obj.content) > 10 else obj.content,
                 'id': obj.id,
                 'edit_url': '/task/task_update/' + str(obj.id),
                 'delete_url': '/task/task_delete/' + str(obj.id),

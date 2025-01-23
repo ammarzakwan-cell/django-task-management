@@ -11,6 +11,7 @@ from fs.errors import ResourceNotFound
 from fs.osfs import OSFS
 from fs_s3fs import S3FS
 
+from django.templatetags.static import static
 from config.storage import config
 from modules.media.models import Media
 
@@ -218,6 +219,9 @@ class StorageComponent:
         :param expiration: URL expiration time in seconds (default 15 minutes)
         :return: Signed URL string
         """
+        if not self.is_exist(object_name):
+            return static('img/not_found.webp')
+
         s3_config = self.disk_config.get('s3')
         s3_client = boto3.client(
             's3', 
