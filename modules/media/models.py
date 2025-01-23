@@ -39,23 +39,30 @@ class Media(models.Model):
             file_size: int,
             disk: str,
             model_instance
-    ):
+    ) -> bool:
         try:
+            # Validate the file size
             validate_file_size(file_size)
-        except ValidationError as e:
-            raise ValidationError(f"Failed to save Media: {e}")
-    
-        content_type = ContentType.objects.get_for_model(model_instance)
+            
+            # Get the ContentType for the model instance
+            content_type = ContentType.objects.get_for_model(model_instance)
 
-        Media.objects.update_or_create(
-            content_type=content_type,
-            object_id=model_instance.id,
-            defaults={
-                'collection_name': collection_name,
-                'file_name': file_name,
-                'file_path': file_path,
-                'mime_type': mime_type,
-                'disk': disk,
-                'size': file_size,
-            }
-        )
+            # Perform the upsert operation
+            return Media.objects.update_or_create(
+                content_type=content_type,
+                object_id=model_instance.id,
+                defaults={
+                    'collection_name': collection_name,
+                    'file_name': file_name,
+                    'file_path': file_path,
+                    'mime_type': mime_type,
+                    'disk': disk,
+                    'size': file_size,
+                }
+            )
+
+        except Exception as e:
+            # Log the error if needed
+            print(f"Error during upsert: {e}")
+            # Return False on failure
+            return False

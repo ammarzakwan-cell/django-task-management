@@ -175,30 +175,35 @@ class StorageComponent:
         except Exception as exception:
             logging.error(f"Error moving file '{src_path}' to '{dst_path}': {exception}")
 
-    def upload_file(self, file, model_instance, collection_name: str = "media"):
+    def upload_file(self, file, model_instance, collection_name: str = "media") -> bool:
 
-        file_name = file.name
-        # Extract file extension, e.g., ".jpg" or ".pdf"
-        _, ext = os.path.splitext(file_name)
-        unique_name = f"{hashlib.sha256((str(time.time()) + '-' + str(uuid4())).encode('utf-8')).hexdigest()}{ext}"
-        #unique_name = f"{hashlib.sha256(f"{time.time()}-{uuid4()}".encode('utf-8')).hexdigest()}{ext}"
-        file_path = f"{collection_name}/{unique_name}"
-        file.name = unique_name
-        print(file_name, file.name)
+        try:
+            file_name = file.name
+            # Extract file extension, e.g., ".jpg" or ".pdf"
+            _, ext = os.path.splitext(file_name)
+            unique_name = f"{hashlib.sha256((str(time.time()) + '-' + str(uuid4())).encode('utf-8')).hexdigest()}{ext}"
+            #unique_name = f"{hashlib.sha256(f"{time.time()}-{uuid4()}".encode('utf-8')).hexdigest()}{ext}"
+            file_path = f"{collection_name}/{unique_name}"
+            file.name = unique_name
+            print(file_name, file.name)
 
-        # Upload the file to S3
-        self.write(file_path, file)
+            # Upload the file to S3
+            self.write(file_path, file)
 
-        # Upload or insert into Media model
-        Media.upsert(
-            collection_name=collection_name,
-            file_name=file_name,
-            file_path=file_path,
-            mime_type=file.content_type,
-            file_size=file.size,
-            disk=self.active_disk,
-            model_instance=model_instance
-        )
+            # Upload or insert into Media model
+            return Media.upsert(
+                collection_name=collection_name,
+                file_name=file_name,
+                file_path=file_path,
+                mime_type=file.content_type,
+                file_size=file.size,
+                disk=self.active_disk,
+                model_instance=model_instance
+            )
+        except Exception as exception:
+            logging.error(f"{exception}")
+            return False
+
 
     def get_public_url(self, file_path: str) -> str:
         """Generate a public URL for the given file."""

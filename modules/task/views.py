@@ -90,8 +90,8 @@ def task_update(request, task_id):
             try:
                 if 'file' in request.FILES:
                     file = request.FILES['file']
-                    storage.upload_file(file, model_instance=task, collection_name="data_entry_task")
-                    if existing_file and storage.is_exist(existing_file.file_path):
+                    is_uploaded = storage.upload_file(file, model_instance=task, collection_name="data_entry_task")
+                    if is_uploaded and existing_file and storage.is_exist(existing_file.file_path):
                         storage.remove(existing_file.file_path)
 
                     
@@ -110,6 +110,8 @@ def task_update(request, task_id):
 
             if existing_file:
                 image_url = storage.generate_signed_url(existing_file.file_path)
+            else:
+                image_url = "https://lightwidget.com/wp-content/uploads/localhost-file-not-found-480x480.avif"
                 #image_to_text = ImageComponent.image_to_text(image_url=image_url)
 
             return render(request, 'task_update.html', {
