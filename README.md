@@ -34,12 +34,14 @@ python manage.py migrate
 ```
 
 ## Seeder
-> cd seed
-### setup user
+```
+// goto seed folder
+cd seed
 
-> python user_seeder.py
+// run user_seeder.py to setup user
+python user_seeder.py
 
-### setup group and assign to user
-
-> python group_seeder.py
+// run group_seeder.py to setup group and assign to user
+python group_seeder.py
+```
 
