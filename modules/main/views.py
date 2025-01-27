@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, permission_required
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.models import User
 
 # Create your views here.
 @login_required(login_url="/login")
@@ -17,26 +17,25 @@ def login_request(request):
         return redirect('/')  # Redirect to homepage if logged
     
     if request.method == 'POST':
-        form = AuthenticationForm(request=request, data=request.POST)
-    
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        
+        try:
             user = authenticate(username=username, password=password)
 
-            if user is not None:
-                login(request, user)
-                messages.info(request, f"You are now logged in as {username}")
-                return redirect('/')
-            else:
-                messages.error(request, "Invalid username or password.")
+        except:
+            messages.error(request, "User Not Found....")
+            return redirect("login")
+
+        if user is not None:
+            login(request, user)
+            messages.info(request, f"You are now logged in as {username}")
+            return redirect('homepage')
         else:
             messages.error(request, "Invalid username or password.")
 
-    form = AuthenticationForm()
     return render(request = request,
-                    template_name = "registration/login.html",
-                    context={"form":form})
+                    template_name = "registration/login.html")
 
 
 def logout_request(request):

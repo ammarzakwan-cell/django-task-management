@@ -2,12 +2,29 @@
 {% block title %}login{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-  <h2 class="mb-4">Login</h2>
-  <form method="POST" class="needs-validation" novalidate>
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Login</button>
-  </form>
-</div>
+<form method="POST">
+{% csrf_token %}
+    <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+        <div class="card shadow-2-strong" style="border-radius: 1rem;">
+            <div class="card-body p-5 text-center">
+                <h4 class="mb-4">Sign in</h4>
+                <form method="post">
+                    <!-- ID field -->
+                    <div class="form-outline mb-4">
+                        <input type="password" name="username" class="form-control form-control" placeholder="User ID" required />
+                    </div>
+
+                    <!-- Password field -->
+                    <div class="form-outline mb-4">
+                        <input type="password" name="password" class="form-control form-control" placeholder="Password" required />
+                    </div>
+
+                    <div class="d-grid gap-2 col-12 mx-auto mb-4">
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</form>
 {% endblock %}
