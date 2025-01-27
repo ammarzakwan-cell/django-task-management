@@ -174,6 +174,8 @@ def unlock_task(request):
         task_id = request.POST.get("task_id")
         if task_id:
             task = Task.objects.filter(id=task_id).first()
+            if not task:
+                return JsonResponse({"status": "error", "message": "Task not found."}, status=404)
             task.unlock_task()
             return JsonResponse({"status": "success", "message": "Task unlocked."})
         return JsonResponse({"status": "error", "message": "Task ID not provided."}, status=400)
