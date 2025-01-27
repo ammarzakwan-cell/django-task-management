@@ -113,7 +113,6 @@ def task_update(request, task_id):
                 image_url = storage.generate_signed_url(existing_file.file_path)
                 #image_to_text = ImageComponent.image_to_text(image_url=image_url)
 
-            print(image_url)
             return render(request, 'task_update.html', {
                 'task': task,
                 'image_url': image_url,
