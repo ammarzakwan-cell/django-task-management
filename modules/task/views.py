@@ -62,8 +62,11 @@ def task_update(request, task_id):
     try:
         task = get_object_or_404(Task, id=task_id)
 
-        if task.is_locked and task.locked_by != request.user:
-            messages.warning(request, "This task is currently being edited by another user.")
+        if task.is_locked:
+            if task.locked_by != request.user:
+                messages.warning(request, "This task is currently being edited by another user.")
+            else:
+                messages.warning(request, "Task already opened.")
             return redirect('task_index')
 
         task.lock_task(request.user)
