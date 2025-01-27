@@ -147,7 +147,7 @@ def task_delete(request, task_id):
             task.delete()
 
             if existing_file:
-                print(existing_file.delete())
+                existing_file.delete()
 
         # if no exception thrown in transaction then we confirm delete the file in storage
         if existing_file and storage.is_exist(existing_file.file_path):
