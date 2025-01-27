@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils.timezone import now
+from auditlog.registry import auditlog
 
 # Create your models here.
 class Task(models.Model):
@@ -25,3 +25,5 @@ class Task(models.Model):
         self.locked_by = None
         self.is_locked = False
         self.save()
+
+auditlog.register(Task, exclude_fields=['locked_by', 'is_locked'])
