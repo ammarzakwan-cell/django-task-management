@@ -4,7 +4,7 @@
 pip install virtualenv
 python -m venv venv
 Set-ExecutionPolicy Unrestricted -Scope Process
-env/Scripts/Activate.ps1
+venv/Scripts/Activate.ps1
 ```
 
 ## Install requirements
